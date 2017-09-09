@@ -225,7 +225,19 @@ public class RequestContext {
 		TimeZone timeZone = null;
 
 		// Determine locale to use for this RequestContext.
-		LocaleResolver localeResolver = RequestContextUtils.getLocaleResolver(request);
+		try {
+            LocaleResolver localeResolver = webApplicationContext.getBean(LocaleContextResolver.class);
+            if (localeResolver instanceof LocaleContextResolver) {
+                LocaleContext localeContext = ((LocaleContextResolver) localeResolver).resolveLocaleContext(request);
+                this.locale = localeContext.getLocale();
+                if (localeContext instanceof TimeZoneAwareLocaleContext) {
+                    this.timeZone = ((TimeZoneAwareLocaleContext) localeContext).getTimeZone();
+                }
+            } else if (localeResolver != null) {
+                // Try LocaleResolver (we're within a DispatcherServlet request).
+                this.locale = localeResolver.resolveLocale(request);
+            }
+        } catch (NoSuchBeanDefinitionException ex) {}
 		if (localeResolver instanceof LocaleContextResolver) {
 			LocaleContext localeContext = ((LocaleContextResolver) localeResolver).resolveLocaleContext(request);
 			locale = localeContext.getLocale();
